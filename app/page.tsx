@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
@@ -22,12 +24,18 @@ export default function Home() {
 
         {/* Кнопки */}
         <div className="space-y-3">
-          <button className="w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-200 transition">
+          <Link
+            href="/login"
+            className="block w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-200 transition text-center"
+          >
             Войти
-          </button>
-          <button className="w-full bg-transparent border border-white text-white font-semibold py-3 rounded-xl hover:bg-white hover:text-black transition">
+          </Link>
+          <Link
+            href="/register"
+            className="block w-full bg-transparent border border-white text-white font-semibold py-3 rounded-xl hover:bg-white hover:text-black transition text-center"
+          >
             Зарегистрироваться
-          </button>
+          </Link>
         </div>
       </div>
     </main>
