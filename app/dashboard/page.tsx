@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TabBar from "../components/TabBar";
 
 // Заглушечные данные — потом заменим на реальные
 const spyId = "SPY-4F7K2";
@@ -8,12 +9,6 @@ const huntedLimit = 5;
 const cases = [
   { id: 1, title: "Кейс #1" },
   { id: 2, title: "Кейс #2" },
-];
-
-const tabs = [
-  { href: "/dashboard", icon: "🏠", label: "Главная", active: true },
-  { href: "/cases", icon: "📁", label: "Кейсы", active: false },
-  { href: "/profile", icon: "👤", label: "Профиль", active: false },
 ];
 
 export default function DashboardPage() {
@@ -77,23 +72,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Таб-бар */}
-      <nav className="fixed bottom-0 inset-x-0 bg-black border-t border-gray-800">
-        <div className="max-w-md mx-auto flex">
-          {tabs.map((t) => (
-            <Link
-              key={t.href}
-              href={t.href}
-              aria-current={t.active ? "page" : undefined}
-              className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs transition ${
-                t.active ? "text-white" : "text-gray-500 hover:text-gray-300"
-              }`}
-            >
-              <span className="text-xl">{t.icon}</span>
-              {t.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
+      <TabBar active="/dashboard" />
     </main>
   );
 }
