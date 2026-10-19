@@ -5,32 +5,41 @@ import { useState, type FormEvent, type ReactNode } from "react";
 
 const totalSteps = 4;
 
-const stepTitles = ["ФИО", "О себе", "Учёба или работа", "Соцсеть"];
+const stepTitles = ["ФИО", "О себе", "Учёба и работа", "Соцсети и детали"];
 
 const levels = ["Бакалавриат", "Магистратура", "Аспирантура", "Специалитет"];
+
+const networks = ["VK", "Instagram", "LinkedIn", "Другое"];
 
 const initialData = {
   firstName: "",
   lastName: "",
-  middleName: "",
   birthdate: "",
   gender: "",
   city: "Москва",
-  occupation: "study",
+  isStudying: false,
   university: "",
   faculty: "",
   level: levels[0],
   course: "",
+  isWorking: false,
   workplace: "",
   position: "",
-  socialLink: "",
-  socialNick: "",
+  telegramNick: "",
+  uniqueDetail: "",
 };
 
 type FormData = typeof initialData;
 
+type Social = { network: string; link: string; nick: string };
+
+const emptySocial: Social = { network: "", link: "", nick: "" };
+
 const inputClass =
   "w-full bg-transparent border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-white transition [color-scheme:dark]";
+
+const checkboxCardClass =
+  "flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition";
 
 function Field({
   label,
@@ -94,18 +103,47 @@ function RadioGroup({
   );
 }
 
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="bg-gray-900 rounded-2xl p-4 space-y-4">
+      <h2 className="font-semibold">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [data, setData] = useState<FormData>(initialData);
+  const [socials, setSocials] = useState<Social[]>([emptySocial, emptySocial]);
 
   function update<K extends keyof FormData>(key: K, value: FormData[K]) {
     setData((prev) => ({ ...prev, [key]: value }));
   }
 
+  function updateSocial(index: number, key: keyof Social, value: string) {
+    setSocials((prev) => prev.map((s, i) => (i === index ? { ...s, [key]: value } : s)));
+  }
+
+  // Две соцсети заполнены и не совпадают («Другое» можно выбрать дважды)
+  const socialsFilled = socials.every((s) => s.network && s.link.trim() && s.nick.trim());
+  const sameNetwork = socials[0].network !== "" && socials[0].network === socials[1].network;
+  const socialsDuplicate = sameNetwork && socials[0].network !== "Другое";
+
+  let blockedReason = "";
+  if (currentStep === 3 && !data.isStudying && !data.isWorking) {
+    blockedReason = "Отметь хотя бы один вариант";
+  } else if (currentStep === 4 && socialsDuplicate) {
+    blockedReason = "Соцсети должны быть разными";
+  } else if (currentStep === 4 && !socialsFilled) {
+    blockedReason = "Заполни две соцсети";
+  }
+
   // Форма отправляется на каждом шаге, чтобы браузер проверил обязательные поля
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (blockedReason) return;
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
       return;
@@ -166,16 +204,6 @@ export default function OnboardingPage() {
                   className={inputClass}
                 />
               </Field>
-              <Field label="Отчество" hint="если есть" htmlFor="middleName">
-                <input
-                  id="middleName"
-                  type="text"
-                  autoComplete="additional-name"
-                  value={data.middleName}
-                  onChange={(e) => update("middleName", e.target.value)}
-                  className={inputClass}
-                />
-              </Field>
             </>
           )}
 
@@ -214,144 +242,210 @@ export default function OnboardingPage() {
             </>
           )}
 
-          {/* Шаг 3 — Учёба или работа */}
+          {/* Шаг 3 — Учёба и работа */}
           {currentStep === 3 && (
             <>
-              <RadioGroup
-                legend="Чем занимаешься"
-                name="occupation"
-                options={[
-                  { value: "study", label: "Я учусь" },
-                  { value: "work", label: "Я работаю" },
-                ]}
-                value={data.occupation}
-                onChange={(v) => update("occupation", v)}
-              />
-              {data.occupation === "study" ? (
-                <>
-                  <Field label="Вуз" htmlFor="university">
-                    <input
-                      id="university"
-                      type="text"
-                      value={data.university}
-                      onChange={(e) => update("university", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Факультет" htmlFor="faculty">
-                    <input
-                      id="faculty"
-                      type="text"
-                      value={data.faculty}
-                      onChange={(e) => update("faculty", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Уровень" htmlFor="level">
+              <div className="space-y-4">
+                <label
+                  className={`${checkboxCardClass} ${
+                    data.isStudying ? "border-white" : "border-gray-700 hover:border-gray-500"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={data.isStudying}
+                    onChange={(e) => update("isStudying", e.target.checked)}
+                    className="accent-white w-4 h-4"
+                  />
+                  Я учусь
+                </label>
+                {data.isStudying && (
+                  <div className="space-y-4 pl-4 border-l border-gray-800">
+                    <Field label="Вуз" htmlFor="university">
+                      <input
+                        id="university"
+                        type="text"
+                        value={data.university}
+                        onChange={(e) => update("university", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Факультет" htmlFor="faculty">
+                      <input
+                        id="faculty"
+                        type="text"
+                        value={data.faculty}
+                        onChange={(e) => update("faculty", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Уровень" htmlFor="level">
+                      <select
+                        id="level"
+                        value={data.level}
+                        onChange={(e) => update("level", e.target.value)}
+                        className={`${inputClass} bg-black`}
+                      >
+                        {levels.map((l) => (
+                          <option key={l} value={l}>
+                            {l}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Курс" htmlFor="course">
+                      <input
+                        id="course"
+                        type="number"
+                        min={1}
+                        max={6}
+                        placeholder="От 1 до 6"
+                        value={data.course}
+                        onChange={(e) => update("course", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <label
+                  className={`${checkboxCardClass} ${
+                    data.isWorking ? "border-white" : "border-gray-700 hover:border-gray-500"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={data.isWorking}
+                    onChange={(e) => update("isWorking", e.target.checked)}
+                    className="accent-white w-4 h-4"
+                  />
+                  Я работаю
+                </label>
+                {data.isWorking && (
+                  <div className="space-y-4 pl-4 border-l border-gray-800">
+                    <Field label="Место работы" htmlFor="workplace">
+                      <input
+                        id="workplace"
+                        type="text"
+                        autoComplete="organization"
+                        value={data.workplace}
+                        onChange={(e) => update("workplace", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Сфера / должность" htmlFor="position">
+                      <input
+                        id="position"
+                        type="text"
+                        autoComplete="organization-title"
+                        value={data.position}
+                        onChange={(e) => update("position", e.target.value)}
+                        className={inputClass}
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Шаг 4 — Соцсети и детали */}
+          {currentStep === 4 && (
+            <>
+              {socials.map((s, i) => (
+                <Section key={i} title={`Соцсеть ${i + 1}`}>
+                  <Field label="Сеть" htmlFor={`network${i}`}>
                     <select
-                      id="level"
-                      value={data.level}
-                      onChange={(e) => update("level", e.target.value)}
+                      id={`network${i}`}
+                      required
+                      value={s.network}
+                      onChange={(e) => updateSocial(i, "network", e.target.value)}
                       className={`${inputClass} bg-black`}
                     >
-                      {levels.map((l) => (
-                        <option key={l} value={l}>
-                          {l}
+                      <option value="" disabled>
+                        Выбери соцсеть
+                      </option>
+                      {networks.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
                         </option>
                       ))}
                     </select>
                   </Field>
-                  <Field label="Курс" htmlFor="course">
+                  <Field label="Ссылка на профиль" htmlFor={`link${i}`}>
                     <input
-                      id="course"
-                      type="number"
-                      min={1}
-                      max={6}
-                      placeholder="От 1 до 6"
-                      value={data.course}
-                      onChange={(e) => update("course", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                </>
-              ) : (
-                <>
-                  <Field label="Место работы" htmlFor="workplace">
-                    <input
-                      id="workplace"
+                      id={`link${i}`}
                       type="text"
-                      autoComplete="organization"
-                      value={data.workplace}
-                      onChange={(e) => update("workplace", e.target.value)}
+                      required
+                      placeholder="https://..."
+                      value={s.link}
+                      onChange={(e) => updateSocial(i, "link", e.target.value)}
                       className={inputClass}
                     />
                   </Field>
-                  <Field label="Сфера / должность" htmlFor="position">
+                  <Field label="Ник" hint="без @" htmlFor={`nick${i}`}>
                     <input
-                      id="position"
+                      id={`nick${i}`}
                       type="text"
-                      autoComplete="organization-title"
-                      value={data.position}
-                      onChange={(e) => update("position", e.target.value)}
+                      required
+                      value={s.nick}
+                      onChange={(e) => updateSocial(i, "nick", e.target.value)}
                       className={inputClass}
                     />
                   </Field>
-                </>
-              )}
-            </>
-          )}
+                </Section>
+              ))}
 
-          {/* Шаг 4 — Соцсеть */}
-          {currentStep === 4 && (
-            <>
-              <Field label="Ссылка на соцсеть" hint="Telegram, VK или Instagram" htmlFor="socialLink">
+              <Section title="Telegram (мессенджер)">
+                <Field label="Ник" hint="без @" htmlFor="telegramNick">
+                  <input
+                    id="telegramNick"
+                    type="text"
+                    value={data.telegramNick}
+                    onChange={(e) => update("telegramNick", e.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+              </Section>
+
+              <Field label="Уникальная деталь" htmlFor="uniqueDetail">
                 <input
-                  id="socialLink"
+                  id="uniqueDetail"
                   type="text"
-                  placeholder="https://t.me/..."
-                  value={data.socialLink}
-                  onChange={(e) => update("socialLink", e.target.value)}
+                  placeholder="Например: любимая группа, необычное хобби"
+                  value={data.uniqueDetail}
+                  onChange={(e) => update("uniqueDetail", e.target.value)}
                   className={inputClass}
                 />
-              </Field>
-              <Field label="Ник в соцсети" hint="без @" htmlFor="socialNick">
-                <input
-                  id="socialNick"
-                  type="text"
-                  value={data.socialNick}
-                  onChange={(e) => update("socialNick", e.target.value)}
-                  className={inputClass}
-                />
-              </Field>
-              <Field label="Любимое фото">
-                {/* Заглушка — загрузку сделаем позже */}
-                <button
-                  type="button"
-                  className="w-full border border-dashed border-gray-700 rounded-xl px-4 py-6 text-gray-400 hover:border-white hover:text-white transition"
-                >
-                  📷 Загрузить фото
-                </button>
               </Field>
             </>
           )}
 
           {/* Навигация */}
-          <div className="flex gap-3 pt-3">
-            {currentStep > 1 && (
+          <div className="pt-3">
+            <div className="flex gap-3">
+              {currentStep > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(currentStep - 1)}
+                  className="flex-1 bg-transparent border border-white text-white font-semibold py-3 rounded-xl hover:bg-white hover:text-black transition"
+                >
+                  Назад
+                </button>
+              )}
               <button
-                type="button"
-                onClick={() => setCurrentStep(currentStep - 1)}
-                className="flex-1 bg-transparent border border-white text-white font-semibold py-3 rounded-xl hover:bg-white hover:text-black transition"
+                type="submit"
+                disabled={blockedReason !== ""}
+                className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-200 transition disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
               >
-                Назад
+                {currentStep < totalSteps ? "Далее" : "Сохранить анкету"}
               </button>
+            </div>
+            {blockedReason && (
+              <p className="text-sm text-gray-500 text-center mt-3">{blockedReason}</p>
             )}
-            <button
-              type="submit"
-              className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-200 transition"
-            >
-              {currentStep < totalSteps ? "Далее" : "Сохранить анкету"}
-            </button>
           </div>
         </form>
       </div>

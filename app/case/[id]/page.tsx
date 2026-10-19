@@ -6,11 +6,14 @@ import { use, useState, type FormEvent } from "react";
 // Заглушечные данные — потом заменим на реальные
 const hints = [
   "Пол: мужской",
-  "Возраст: 20–25",
-  "МГУ, журфак",
-  "Бакалавриат, 3 курс",
+  "Возраст: март 2000-х",
+  "МГУ, журфак, бакалавриат, 3 курс",
+  "Сфера: IT",
   "Имя: начинается на «А», 7 букв",
+  "VK: @a***v",
+  "Instagram: @a***_moscow",
   "Telegram: @a***v",
+  "Деталь: любит группу Radiohead",
 ];
 const attemptsLeft = 10;
 const attemptsTotal = 10;
