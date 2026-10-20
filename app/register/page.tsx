@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 const roles = [
@@ -13,13 +14,41 @@ const inputClass =
   "w-full bg-transparent border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-white transition [color-scheme:dark]";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [role, setRole] = useState("both");
   const [consentData, setConsentData] = useState(false);
   const [consentTarget, setConsentTarget] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    alert("Форма работает");
+    const form = new FormData(e.currentTarget);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.get("email"),
+          password: form.get("password"),
+          birthDate: form.get("birthdate"),
+          role,
+        }),
+      });
+      const data: { success: boolean; spyId?: string; error?: string } = await res
+        .json()
+        .catch(() => ({ success: false }));
+
+      if (data.success) {
+        alert(`Добро пожаловать в игру! Твой SPY-ID: ${data.spyId}`);
+        router.push("/login");
+        return;
+      }
+      alert(data.error ?? "Не удалось зарегистрироваться, попробуй ещё раз");
+    } catch {
+      alert("Нет связи с сервером, попробуй ещё раз");
+    }
+    setSubmitting(false);
   }
 
   return (
@@ -127,10 +156,10 @@ export default function RegisterPage() {
           {/* Кнопка */}
           <button
             type="submit"
-            disabled={!consentData}
+            disabled={!consentData || submitting}
             className="block w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-200 transition disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
-            Создать аккаунт
+            {submitting ? "Создаём..." : "Создать аккаунт"}
           </button>
         </form>
 
