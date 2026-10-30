@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 const inputClass =
@@ -9,10 +10,32 @@ const inputClass =
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    alert("Форма входа работает");
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data: { success: boolean; spyId?: string; error?: string } = await res
+        .json()
+        .catch(() => ({ success: false }));
+
+      if (data.success) {
+        alert(`С возвращением, агент ${data.spyId}!`);
+        router.push("/dashboard");
+        return;
+      }
+      alert(data.error ?? "Не удалось войти, попробуй ещё раз");
+    } catch {
+      alert("Нет связи с сервером, попробуй ещё раз");
+    }
+    setSubmitting(false);
   }
 
   return (
@@ -68,9 +91,10 @@ export default function LoginPage() {
           {/* Кнопка */}
           <button
             type="submit"
-            className="block w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-200 transition"
+            disabled={submitting}
+            className="block w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-200 transition disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
-            Войти
+            {submitting ? "Входим..." : "Войти"}
           </button>
         </form>
 
