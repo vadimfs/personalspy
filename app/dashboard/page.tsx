@@ -1,9 +1,8 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/current-user";
 import TabBar from "../components/TabBar";
 
 // Заглушечные данные — потом заменим на реальные
-const spyId = "SPY-4F7K2";
-const points = 240;
 const huntedBy = 3;
 const huntedLimit = 5;
 const cases = [
@@ -11,7 +10,9 @@ const cases = [
   { id: 2, title: "Кейс #2" },
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { spyId, points } = await getCurrentUser();
+
   return (
     <main className="min-h-screen bg-black text-white px-6 pt-6 pb-28">
       <div className="max-w-md mx-auto">
