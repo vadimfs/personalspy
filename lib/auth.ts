@@ -24,6 +24,18 @@ export async function createSession(userId: string, spyId: string) {
     .sign(getSecret());
 }
 
+// Создаёт сессию и кладёт её в httpOnly-cookie; вызывать из Route Handler
+export async function startSession(userId: string, spyId: string) {
+  const token = await createSession(userId, spyId);
+  (await cookies()).set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: SESSION_MAX_AGE,
+  });
+}
+
 // Читает JWT из cookie; null, если cookie нет, подпись неверна или срок истёк
 export async function getSession(): Promise<Session | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;

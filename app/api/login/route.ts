@@ -1,7 +1,6 @@
-import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE, SESSION_MAX_AGE, createSession } from "@/lib/auth";
+import { startSession } from "@/lib/auth";
 
 const invalidCredentials = "Неверный email или пароль";
 
@@ -34,14 +33,7 @@ export async function POST(request: Request) {
       return error(invalidCredentials, 401);
     }
 
-    const token = await createSession(user.id, user.spyId);
-    (await cookies()).set(SESSION_COOKIE, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: SESSION_MAX_AGE,
-    });
+    await startSession(user.id, user.spyId);
 
     return Response.json({ success: true, spyId: user.spyId });
   } catch (e) {

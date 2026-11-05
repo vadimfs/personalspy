@@ -41,7 +41,7 @@ export default function RegisterPage() {
 
       if (data.success) {
         alert(`Добро пожаловать в игру! Твой SPY-ID: ${data.spyId}`);
-        router.push("/login");
+        router.push("/onboarding");
         return;
       }
       alert(data.error ?? "Не удалось зарегистрироваться, попробуй ещё раз");

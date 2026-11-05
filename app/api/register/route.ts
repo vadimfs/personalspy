@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
+import { startSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const roleFlags = {
@@ -66,9 +67,11 @@ export async function POST(request: Request) {
       try {
         // Дату рождения в User не храним: в схеме она лежит в Profile,
         // который создаётся позже, на шаге анкеты
-        await prisma.user.create({
+        const user = await prisma.user.create({
           data: { spyId, email: normalizedEmail, passwordHash, ...roleFlags[role as Role] },
         });
+        // Сразу входим, чтобы после регистрации можно было заполнить анкету
+        await startSession(user.id, spyId);
         return Response.json({ success: true, spyId }, { status: 201 });
       } catch (e) {
         if (!(e instanceof Prisma.PrismaClientKnownRequestError) || e.code !== "P2002") {
