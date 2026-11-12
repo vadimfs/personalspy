@@ -17,25 +17,42 @@ model User {
   totalSolved  Int      @default(0)
   createdAt    DateTime @default(now())
   profile      Profile?
+  spyCases     Case[]   @relation("SpyCases")
+  targetCases  Case[]   @relation("TargetCases")
 }
 
 model Profile {
-  userId       String   @id
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  firstName    String
-  lastName     String
-  birthDate    DateTime
-  gender       String
-  city         String   @default("Москва")
-  
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName String
+  lastName  String
+  birthDate DateTime
+  gender    String
+  city      String   @default("Москва")
+
   eduUniversity String?
   eduFaculty    String?
   eduLevel      String?
   eduCourse     Int?
-  
-  workPlace    String?
-  workSphere   String?
-  
-  socials      Json?    
+
+  workPlace  String?
+  workSphere String?
+
+  socials      Json?
   uniqueDetail String?
+}
+
+// Кейс: шпион ищет цель по подсказкам
+model Case {
+  id           Int      @id @default(autoincrement())
+  spyUserId    String
+  spy          User     @relation("SpyCases", fields: [spyUserId], references: [id], onDelete: Cascade)
+  targetUserId String
+  target       User     @relation("TargetCases", fields: [targetUserId], references: [id], onDelete: Cascade)
+  status       String   @default("active") // active | solved | failed | forfeited
+  attemptsLeft Int      @default(10)
+  createdAt    DateTime @default(now())
+
+  @@index([spyUserId, status])
+  @@index([targetUserId])
 }

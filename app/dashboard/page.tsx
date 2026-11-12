@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/current-user";
 import TabBar from "../components/TabBar";
+import NewCaseButton from "./NewCaseButton";
 
 // Заглушечные данные — потом заменим на реальные
 const huntedBy = 3;
@@ -64,12 +65,7 @@ export default async function DashboardPage() {
         </section>
 
         {/* Выдать цель */}
-        <Link
-          href="/case/new"
-          className="block w-full bg-white text-black text-lg font-semibold py-4 rounded-xl hover:bg-gray-200 transition text-center"
-        >
-          + Выдать цель
-        </Link>
+        <NewCaseButton />
       </div>
 
       {/* Таб-бар */}
