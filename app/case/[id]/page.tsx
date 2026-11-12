@@ -1,31 +1,27 @@
-"use client";
-
 import Link from "next/link";
-import { use, useState, type FormEvent } from "react";
+import { notFound } from "next/navigation";
+import { CASE_ATTEMPTS, findSpyCase, parseCaseId } from "@/lib/cases";
+import { getCurrentUser } from "@/lib/current-user";
+import { generateHints } from "@/lib/masking";
+import CaseCheck from "./CaseCheck";
 
-// Заглушечные данные — потом заменим на реальные
-const hints = [
-  "Пол: мужской",
-  "Возраст: март 2000-х",
-  "МГУ, журфак, бакалавриат, 3 курс",
-  "Сфера: IT",
-  "Имя: начинается на «А», 7 букв",
-  "VK: @a***v",
-  "Instagram: @a***_moscow",
-  "Telegram: @a***v",
-  "Деталь: любит группу Radiohead",
-];
-const attemptsLeft = 10;
-const attemptsTotal = 10;
+const closedMessages: Record<string, string> = {
+  solved: "Ты уже нашёл эту цель 🎉",
+  failed: "Попытки закончились, кейс провален",
+  forfeited: "Ты отказался от этого кейса",
+};
 
-export default function CasePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const [targetId, setTargetId] = useState("");
+export default async function CasePage({ params }: { params: Promise<{ id: string }> }) {
+  const caseId = parseCaseId((await params).id);
+  if (!caseId) notFound();
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    alert("Проверяем ID: " + targetId);
-  }
+  const user = await getCurrentUser();
+  // Чужой кейс показываем как несуществующий
+  const found = await findSpyCase(caseId, user.id);
+  if (!found) notFound();
+
+  const profile = found.target.profile;
+  const isActive = found.status === "active" && profile !== null;
 
   return (
     <main className="relative min-h-screen bg-black text-white flex flex-col items-center px-6 pt-20 pb-12">
@@ -39,61 +35,42 @@ export default function CasePage({ params }: { params: Promise<{ id: string }> }
 
       <div className="max-w-md w-full">
         {/* Заголовок */}
-        <h1 className="text-3xl font-bold mb-8 text-center">Кейс #{id}</h1>
+        <h1 className="text-3xl font-bold mb-8 text-center">Кейс #{found.id}</h1>
 
-        {/* Подсказки */}
-        <section className="bg-gray-900 rounded-2xl px-5 py-4 mb-6">
-          <h2 className="font-semibold mb-3">Подсказки:</h2>
-          <ul className="space-y-2 text-gray-300">
-            {hints.map((hint) => (
-              <li key={hint} className="flex gap-2">
-                <span className="text-gray-500">•</span>
-                {hint}
-              </li>
-            ))}
-          </ul>
-        </section>
+        {isActive ? (
+          <>
+            {/* Подсказки */}
+            <section className="bg-gray-900 rounded-2xl px-5 py-4 mb-6">
+              <h2 className="font-semibold mb-3">Подсказки:</h2>
+              <ul className="space-y-2 text-gray-300">
+                {generateHints(profile).map((hint) => (
+                  <li key={hint} className="flex gap-2">
+                    <span className="text-gray-500">•</span>
+                    {hint}
+                  </li>
+                ))}
+              </ul>
+            </section>
 
-        {/* Попытки */}
-        <p className="text-sm text-gray-400 mb-6">
-          Попыток:{" "}
-          <span className="text-white font-semibold">
-            {attemptsLeft} / {attemptsTotal}
-          </span>
-        </p>
-
-        {/* Проверка ID */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="targetId" className="block text-sm text-gray-400 mb-2">
-              Введи ID цели:
-            </label>
-            <input
-              id="targetId"
-              type="text"
-              placeholder="SPY-XXXXX"
-              autoComplete="off"
-              value={targetId}
-              onChange={(e) => setTargetId(e.target.value)}
-              className="w-full bg-transparent border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 font-monofocus:outline-none focus:border-white transition"
+            <CaseCheck
+              caseId={found.id}
+              initialAttempts={found.attemptsLeft}
+              totalAttempts={CASE_ATTEMPTS}
             />
-          </div>
-          <button
-            type="submit"
-            className="block w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-200 transition"
-          >
-            Проверить
-          </button>
-        </form>
-
-        {/* Отказ */}
-        <button
-          type="button"
-          onClick={() => alert("Отказ от кейса")}
-          className="block w-full mt-10 bg-transparent border border-red-500 text-red-500 font-semibold py-3 rounded-xl hover:bg-red-500 hover:text-white transition"
-        >
-          Отказаться (−15 баллов)
-        </button>
+          </>
+        ) : (
+          <section className="bg-gray-900 rounded-2xl px-5 py-6 text-center">
+            <p className="text-lg mb-6">
+              {closedMessages[found.status] ?? "Цель удалила анкету, кейс недоступен"}
+            </p>
+            <Link
+              href="/dashboard"
+              className="inline-block bg-white text-black font-semibold px-6 py-3 rounded-xl hover:bg-gray-200 transition"
+            >
+              На главную
+            </Link>
+          </section>
+        )}
       </div>
     </main>
   );

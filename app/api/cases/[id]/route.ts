@@ -1,15 +1,14 @@
+import { findSpyCase, parseCaseId } from "@/lib/cases";
 import { findCurrentUser } from "@/lib/current-user";
 import { generateHints } from "@/lib/masking";
-import { prisma } from "@/lib/prisma";
 
 function error(message: string, status: number) {
   return Response.json({ success: false, error: message }, { status });
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const caseId = Number(id);
-  if (!Number.isInteger(caseId) || caseId <= 0) {
+  const caseId = parseCaseId((await params).id);
+  if (!caseId) {
     return error("Кейс не найден", 404);
   }
 
@@ -19,19 +18,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       return error("Войди в аккаунт", 401);
     }
 
-    const found = await prisma.case.findUnique({
-      where: { id: caseId },
-      select: {
-        id: true,
-        spyUserId: true,
-        status: true,
-        attemptsLeft: true,
-        target: { select: { profile: true } },
-      },
-    });
-
     // Чужой кейс отдаём как несуществующий, чтобы не раскрывать, что он есть
-    if (!found || found.spyUserId !== user.id) {
+    const found = await findSpyCase(caseId, user.id);
+    if (!found) {
       return error("Кейс не найден", 404);
     }
     if (found.status !== "active") {
