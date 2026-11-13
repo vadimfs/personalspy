@@ -17,6 +17,29 @@ export default function CaseCheck({
   const [targetId, setTargetId] = useState("");
   const [attemptsLeft, setAttemptsLeft] = useState(initialAttempts);
   const [checking, setChecking] = useState(false);
+  const [declining, setDeclining] = useState(false);
+  const busy = checking || declining;
+
+  async function handleDecline() {
+    if (!window.confirm("Точно отказаться от кейса?")) return;
+    setDeclining(true);
+    try {
+      const res = await fetch(`/api/cases/${caseId}/decline`, { method: "POST" });
+      const data: { success: boolean; error?: string } = await res
+        .json()
+        .catch(() => ({ success: false }));
+
+      if (data.success) {
+        alert("Кейс закрыт");
+        router.push("/dashboard");
+        return;
+      }
+      alert(data.error ?? "Не удалось отказаться от кейса, попробуй ещё раз");
+    } catch {
+      alert("Нет связи с сервером, попробуй ещё раз");
+    }
+    setDeclining(false);
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -84,20 +107,21 @@ export default function CaseCheck({
         </div>
         <button
           type="submit"
-          disabled={checking}
+          disabled={busy}
           className="block w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-200 transition disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed"
         >
           {checking ? "Проверяем..." : "Проверить"}
         </button>
       </form>
 
-      {/* Отказ — пока заглушка */}
+      {/* Отказ */}
       <button
         type="button"
-        onClick={() => alert("Отказ от кейса")}
-        className="block w-full mt-10 bg-transparent border border-red-500 text-red-500 font-semibold py-3 rounded-xl hover:bg-red-500 hover:text-white transition"
+        onClick={handleDecline}
+        disabled={busy}
+        className="block w-full mt-10 bg-transparent border border-red-500 text-red-500 font-semibold py-3 rounded-xl hover:bg-red-500 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-red-500"
       >
-        Отказаться (−15 баллов)
+        {declining ? "Закрываем..." : "Отказаться (−15 баллов)"}
       </button>
     </>
   );

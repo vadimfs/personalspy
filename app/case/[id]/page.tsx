@@ -8,7 +8,7 @@ import CaseCheck from "./CaseCheck";
 const closedMessages: Record<string, string> = {
   solved: "Ты уже нашёл эту цель 🎉",
   failed: "Попытки закончились, кейс провален",
-  forfeited: "Ты отказался от этого кейса",
+  declined: "Ты отказался от этого кейса",
 };
 
 export default async function CasePage({ params }: { params: Promise<{ id: string }> }) {

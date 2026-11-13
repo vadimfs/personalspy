@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 
 export const CASE_ATTEMPTS = 10;
 export const CASE_REWARD = 50;
+export const DECLINE_PENALTY = 15;
 
 // ID кейса из URL: положительное целое число или null
 export function parseCaseId(value: string) {

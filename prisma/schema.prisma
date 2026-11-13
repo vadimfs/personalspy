@@ -49,7 +49,7 @@ model Case {
   spy          User     @relation("SpyCases", fields: [spyUserId], references: [id], onDelete: Cascade)
   targetUserId String
   target       User     @relation("TargetCases", fields: [targetUserId], references: [id], onDelete: Cascade)
-  status       String   @default("active") // active | solved | failed | forfeited
+  status       String   @default("active") // active | solved | failed | declined
   attemptsLeft Int      @default(10)
   createdAt    DateTime @default(now())
 
