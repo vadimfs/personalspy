@@ -1,4 +1,5 @@
 import type { Profile } from "@prisma/client";
+import type { Difficulty } from "@/lib/difficulty";
 import type { Socials } from "@/lib/onboarding";
 
 const months = [
@@ -47,59 +48,89 @@ type HintProfile = Pick<
   | "firstName"
   | "birthDate"
   | "gender"
+  | "city"
   | "eduUniversity"
   | "eduFaculty"
   | "eduLevel"
   | "eduCourse"
   | "workSphere"
   | "socials"
-  | "uniqueDetail"
 >;
 
-// Подсказки о цели без прямых данных: фамилия, точная дата рождения,
-// место работы и полные ники не раскрываются
-export function generateHints(profile: HintProfile): string[] {
-  const hints: string[] = [];
+type HintKind = "gender" | "age" | "city" | "occupation" | "name" | "networks" | "telegram";
 
-  if (profile.gender === "male") hints.push("Пол: мужской");
-  else if (profile.gender === "female") hints.push("Пол: женский");
+// Чем выше сложность, тем меньше подсказок:
+// easy — 6–7, medium — 4–5 (без имени), hard — 3, insane — 1–2
+const hintsByDifficulty: Record<Difficulty, HintKind[]> = {
+  easy: ["gender", "age", "occupation", "name", "networks", "telegram"],
+  medium: ["gender", "age", "occupation", "networks"],
+  hard: ["gender", "age", "occupation"],
+  insane: ["gender", "city"],
+};
 
-  // Год маскируем до десятилетия, месяц пишем словами: «март 2000-х»
+function genderHint(profile: HintProfile) {
+  if (profile.gender === "male") return ["Пол: мужской"];
+  if (profile.gender === "female") return ["Пол: женский"];
+  return [];
+}
+
+// Год маскируем до десятилетия, месяц пишем словами: «март 2000-х»
+function ageHint(profile: HintProfile) {
   const month = months[profile.birthDate.getUTCMonth()];
   const decade = Math.floor(profile.birthDate.getUTCFullYear() / 10) * 10;
-  hints.push(`Возраст: ${month} ${decade}-х`);
+  return [`Возраст: ${month} ${decade}-х`];
+}
 
+function cityHint(profile: HintProfile) {
+  return profile.city ? [`Город: ${profile.city}`] : [];
+}
+
+// Учёба, а если цель не учится — сфера работы
+function occupationHint(profile: HintProfile) {
   const education = [
     profile.eduUniversity,
     profile.eduFaculty,
     profile.eduLevel?.toLowerCase(),
     profile.eduCourse ? `${profile.eduCourse} курс` : null,
   ].filter(Boolean);
-  if (education.length > 0) hints.push(education.join(", "));
+  if (education.length > 0) return [education.join(", ")];
+  return profile.workSphere ? [`Сфера: ${profile.workSphere}`] : [];
+}
 
-  if (profile.workSphere) hints.push(`Сфера: ${profile.workSphere}`);
-
+function nameHint(profile: HintProfile) {
   const name = profile.firstName.trim();
-  if (name) {
-    const length = [...name].length;
-    hints.push(
-      `Имя: начинается на «${name[0].toUpperCase()}», ${length} ${pluralLetters(length)}`,
-    );
-  }
+  if (!name) return [];
+  const length = [...name].length;
+  return [`Имя: начинается на «${name[0].toUpperCase()}», ${length} ${pluralLetters(length)}`];
+}
 
-  const socials = readSocials(profile.socials);
-  for (const account of socials.networks) {
+function networksHint(profile: HintProfile) {
+  return readSocials(profile.socials).networks.flatMap((account) => {
     const masked = typeof account?.nick === "string" ? maskNick(account.nick) : null;
-    if (!masked) continue;
+    if (!masked) return [];
     const label = account.network === "Другое" ? "Соцсеть" : account.network;
-    hints.push(`${label}: ${masked}`);
-  }
-  if (socials.telegram) {
-    const masked = maskNick(socials.telegram);
-    if (masked) hints.push(`Telegram: ${masked}`);
-  }
+    return [`${label}: ${masked}`];
+  });
+}
 
-  if (profile.uniqueDetail) hints.push(`Деталь: ${profile.uniqueDetail}`);
+function telegramHint(profile: HintProfile) {
+  const { telegram } = readSocials(profile.socials);
+  const masked = telegram ? maskNick(telegram) : null;
+  return masked ? [`Telegram: ${masked}`] : [];
+}
 
-  return hints;
+const hintBuilders: Record<HintKind, (profile: HintProfile) => string[]> = {
+  gender: genderHint,
+  age: ageHint,
+  city: cityHint,
+  occupation: occupationHint,
+  name: nameHint,
+  networks: networksHint,
+  telegram: telegramHint,
+};
+
+// Подсказки о цели без прямых данных: фамилия, точная дата рождения,
+// место работы и полные ники не раскрываются. Набор зависит от сложности
+export function generateHints(profile: HintProfile, difficulty: Difficulty): string[] {
+  return hintsByDifficulty[difficulty].flatMap((kind) => hintBuilders[kind](profile));
 }

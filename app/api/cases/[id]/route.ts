@@ -1,4 +1,4 @@
-import { findSpyCase, parseCaseId } from "@/lib/cases";
+import { findSpyCase, parseCaseId, toDifficulty } from "@/lib/cases";
 import { findCurrentUser } from "@/lib/current-user";
 import { generateHints } from "@/lib/masking";
 
@@ -32,7 +32,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     return Response.json({
       caseId: found.id,
-      hints: generateHints(found.target.profile),
+      difficulty: found.difficulty,
+      reward: found.reward,
+      hints: generateHints(found.target.profile, toDifficulty(found.difficulty)),
       attemptsLeft: found.attemptsLeft,
     });
   } catch (e) {

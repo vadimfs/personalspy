@@ -1,12 +1,23 @@
 import type { Prisma } from "@prisma/client";
 import { findCurrentUser } from "@/lib/current-user";
+import { difficultyConfig, isDifficulty } from "@/lib/difficulty";
 import { prisma } from "@/lib/prisma";
 
 function error(message: string, status: number) {
   return Response.json({ success: false, error: message }, { status });
 }
 
-export async function POST() {
+export async function POST(request: Request) {
+  let difficulty: unknown;
+  try {
+    ({ difficulty } = (await request.json()) ?? {});
+  } catch {
+    return error("Некорректный запрос", 400);
+  }
+  if (!isDifficulty(difficulty)) {
+    return error("Выбери сложность: easy, medium, hard или insane", 400);
+  }
+
   try {
     const user = await findCurrentUser();
     if (!user) {
@@ -42,7 +53,13 @@ export async function POST() {
     }
 
     const newCase = await prisma.case.create({
-      data: { spyUserId: user.id, targetUserId: target.id, status: "active" },
+      data: {
+        spyUserId: user.id,
+        targetUserId: target.id,
+        status: "active",
+        difficulty,
+        reward: difficultyConfig[difficulty].reward,
+      },
       select: { id: true },
     });
 

@@ -1,4 +1,4 @@
-import { CASE_REWARD, findSpyCase, normalizeSpyId, parseCaseId } from "@/lib/cases";
+import { findSpyCase, normalizeSpyId, parseCaseId } from "@/lib/cases";
 import { findCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 
@@ -47,14 +47,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (count === 0) return false;
         await tx.user.update({
           where: { id: user.id },
-          data: { points: { increment: CASE_REWARD }, totalSolved: { increment: 1 } },
+          data: { points: { increment: found.reward }, totalSolved: { increment: 1 } },
         });
         return true;
       });
       if (!solved) {
         return error("Кейс уже закрыт", 410);
       }
-      return Response.json({ success: true, reward: CASE_REWARD });
+      return Response.json({ success: true, reward: found.reward });
     }
 
     // Неверный ID стоит одну попытку; на последней кейс проваливается

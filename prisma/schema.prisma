@@ -51,6 +51,8 @@ model Case {
   target       User     @relation("TargetCases", fields: [targetUserId], references: [id], onDelete: Cascade)
   status       String   @default("active") // active | solved | failed | declined
   attemptsLeft Int      @default(10)
+  difficulty   String   @default("easy") // easy | medium | hard | insane
+  reward       Int      @default(30) // баллы за поимку цели
   createdAt    DateTime @default(now())
 
   @@index([spyUserId, status])

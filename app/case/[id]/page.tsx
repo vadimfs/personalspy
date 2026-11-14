@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CASE_ATTEMPTS, findSpyCase, parseCaseId } from "@/lib/cases";
+import { CASE_ATTEMPTS, findSpyCase, parseCaseId, toDifficulty } from "@/lib/cases";
 import { getCurrentUser } from "@/lib/current-user";
+import { difficultyConfig } from "@/lib/difficulty";
 import { generateHints } from "@/lib/masking";
 import CaseCheck from "./CaseCheck";
 
@@ -22,6 +23,8 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
 
   const profile = found.target.profile;
   const isActive = found.status === "active" && profile !== null;
+  const difficulty = toDifficulty(found.difficulty);
+  const { label, emoji } = difficultyConfig[difficulty];
 
   return (
     <main className="relative min-h-screen bg-black text-white flex flex-col items-center px-6 pt-20 pb-12">
@@ -35,7 +38,10 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
 
       <div className="max-w-md w-full">
         {/* Заголовок */}
-        <h1 className="text-3xl font-bold mb-8 text-center">Кейс #{found.id}</h1>
+        <h1 className="text-3xl font-bold mb-2 text-center">Кейс #{found.id}</h1>
+        <p className="text-sm text-gray-400 mb-8 text-center">
+          {emoji} {label} · награда {found.reward} баллов
+        </p>
 
         {isActive ? (
           <>
@@ -43,7 +49,7 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
             <section className="bg-gray-900 rounded-2xl px-5 py-4 mb-6">
               <h2 className="font-semibold mb-3">Подсказки:</h2>
               <ul className="space-y-2 text-gray-300">
-                {generateHints(profile).map((hint) => (
+                {generateHints(profile, difficulty).map((hint) => (
                   <li key={hint} className="flex gap-2">
                     <span className="text-gray-500">•</span>
                     {hint}
